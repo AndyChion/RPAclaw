@@ -5,19 +5,20 @@ from pathlib import Path
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Prompt, Confirm
+from rich.prompt import Prompt
 from rich.table import Table
 
 console = Console()
 
+# Map choice → (display_name, nanobot_provider_field, api_base, default_model)
 PROVIDERS = {
-    "1": {"name": "Minimax", "base_url": "https://api.minimax.chat/v1", "model": "minimax-m2.5"},
-    "2": {"name": "Kimi (Moonshot)", "base_url": "https://api.moonshot.cn/v1", "model": "kimi-k2.5"},
-    "3": {"name": "DeepSeek", "base_url": "https://api.deepseek.com", "model": "deepseek-chat"},
-    "4": {"name": "OpenAI", "base_url": "https://api.openai.com/v1", "model": "gpt-4.1"},
-    "5": {"name": "Anthropic", "base_url": "https://api.anthropic.com", "model": "claude-sonnet-4-20250514"},
-    "6": {"name": "OpenRouter", "base_url": "https://openrouter.ai/api/v1", "model": "openai/gpt-4.1"},
-    "7": {"name": "自定义 / Custom", "base_url": "", "model": ""},
+    "1": ("Minimax",        "minimax",    "https://api.minimax.chat/v1",   "minimax-m2.5"),
+    "2": ("Kimi (Moonshot)", "moonshot",   "https://api.moonshot.cn/v1",    "kimi-k2.5"),
+    "3": ("DeepSeek",       "deepseek",   "https://api.deepseek.com",      "deepseek-chat"),
+    "4": ("OpenAI",         "openai",     "https://api.openai.com/v1",     "gpt-4.1"),
+    "5": ("Anthropic",      "anthropic",  "https://api.anthropic.com",     "claude-sonnet-4-20250514"),
+    "6": ("OpenRouter",     "openrouter", "https://openrouter.ai/api/v1",  "openai/gpt-4.1"),
+    "7": ("自定义 / Custom",  "custom",     "",                              ""),
 }
 
 LOGO = r"""
@@ -38,6 +39,11 @@ def get_config_path() -> Path:
     return Path.home() / ".nanobot" / "config.json"
 
 
+def get_state_path() -> Path:
+    """Return RPAclaw internal state file (not parsed by Nanobot)."""
+    return Path.home() / ".nanobot" / ".rpaclaw_state.json"
+
+
 def load_config() -> dict:
     """Load existing config or return empty dict."""
     path = get_config_path()
@@ -56,13 +62,34 @@ def save_config(config: dict):
     path.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+def load_state() -> dict:
+    """Load RPAclaw internal state."""
+    path = get_state_path()
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return {}
+    return {}
+
+
+def save_state(state: dict):
+    """Save RPAclaw internal state."""
+    path = get_state_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def run_setup_if_needed(config_path: str | None = None):
     """Run setup wizard only if no valid API key is configured."""
     cfg = load_config()
     providers = cfg.get("providers", {})
-    has_key = any(
-        p.get("apiKey") for p in providers.values()
-    ) if isinstance(providers, dict) else False
+    has_key = False
+    if isinstance(providers, dict):
+        for prov in providers.values():
+            if isinstance(prov, dict) and prov.get("apiKey"):
+                has_key = True
+                break
     if not has_key:
         run_setup_wizard()
 
@@ -81,8 +108,9 @@ def run_setup_wizard(force: bool = False):
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_column(style="cyan bold", width=4)
     table.add_column()
-    for k, v in PROVIDERS.items():
-        table.add_row(k, v["name"])
+    table.add_column(style="dim")
+    for k, (display, _, _, model) in PROVIDERS.items():
+        table.add_row(k, display, f"({model})" if model else "")
     console.print(table)
 
     choice = Prompt.ask(
@@ -90,74 +118,75 @@ def run_setup_wizard(force: bool = False):
         choices=list(PROVIDERS.keys()),
         default="1",
     )
-    provider = dict(PROVIDERS[choice])  # copy
+    display_name, provider_field, api_base, default_model = PROVIDERS[choice]
 
     if choice == "7":
-        provider["name"] = Prompt.ask("  供应商名称 / Provider name")
-        provider["base_url"] = Prompt.ask("  API Base URL")
-        provider["model"] = Prompt.ask("  模型名称 / Model name")
+        display_name = Prompt.ask("  供应商名称 / Provider name")
+        api_base = Prompt.ask("  API Base URL")
+        default_model = Prompt.ask("  模型名称 / Model name")
 
     # API Key
     api_key = Prompt.ask(
-        f"\n🔑  输入 {provider['name']} API Key",
+        f"\n🔑  输入 {display_name} API Key",
         password=True,
     )
 
     # Verify
     console.print("\n[yellow]⏳  验证连接中 / Verifying...[/yellow]", end=" ")
-    ok = _verify_api_key(provider, api_key)
+    ok = _verify_api_key(api_base, api_key, default_model)
     if ok:
         console.print("[green]✅ 成功 / Success![/green]")
     else:
         console.print("[red]⚠️  验证失败，配置已保存 / Verification failed, config saved[/red]")
 
-    # Save
+    # Save — using Nanobot's exact schema (camelCase)
     cfg = load_config()
-    provider_key = provider["name"].lower().replace(" ", "_")
-    cfg.setdefault("providers", {})
-    cfg["providers"][provider_key] = {
-        "apiKey": api_key,
-        "baseUrl": provider["base_url"],
-    }
-    cfg.setdefault("agent", {})
-    cfg["agent"]["model"] = provider["model"]
-    cfg["agent"]["provider"] = provider_key
-    save_config(cfg)
 
+    # providers.<field>.apiKey / apiBase
+    cfg.setdefault("providers", {})
+    provider_entry = {"apiKey": api_key}
+    if api_base:
+        provider_entry["apiBase"] = api_base
+    cfg["providers"][provider_field] = provider_entry
+
+    # agents.defaults.model / provider
+    cfg.setdefault("agents", {})
+    cfg["agents"].setdefault("defaults", {})
+    cfg["agents"]["defaults"]["model"] = default_model
+    cfg["agents"]["defaults"]["provider"] = provider_field
+
+    save_config(cfg)
     console.print(f"\n[green]✅  配置已保存 → {get_config_path()}[/green]")
 
     # ─── Step 2: Channel Configuration ────────────────────────
-    _setup_channels(cfg)
+    _setup_channels()
 
     console.print("\n" + "─" * 50)
     console.print("[bold green]🎉  配置完成，进入对话模式！/ Setup complete![/bold green]\n")
 
 
-def _verify_api_key(provider: dict, api_key: str) -> bool:
+def _verify_api_key(api_base: str, api_key: str, model: str) -> bool:
     """Quick API connectivity check."""
+    if not api_base or not api_key or not model:
+        return False
     try:
         import httpx
 
         headers = {"Content-Type": "application/json"}
         body = {
-            "model": provider["model"],
+            "model": model,
             "messages": [{"role": "user", "content": "hi"}],
             "max_tokens": 5,
         }
 
-        # Anthropic uses a different header
-        if "anthropic" in provider["base_url"].lower():
+        # Anthropic uses different auth
+        if "anthropic" in api_base.lower():
             headers["x-api-key"] = api_key
             headers["anthropic-version"] = "2023-06-01"
-            url = f"{provider['base_url']}/v1/messages"
-            body = {
-                "model": provider["model"],
-                "messages": [{"role": "user", "content": "hi"}],
-                "max_tokens": 5,
-            }
+            url = f"{api_base}/v1/messages"
         else:
             headers["Authorization"] = f"Bearer {api_key}"
-            url = f"{provider['base_url']}/chat/completions"
+            url = f"{api_base}/chat/completions"
 
         resp = httpx.post(url, headers=headers, json=body, timeout=15)
         return resp.status_code == 200
@@ -165,7 +194,7 @@ def _verify_api_key(provider: dict, api_key: str) -> bool:
         return False
 
 
-def _setup_channels(cfg: dict):
+def _setup_channels():
     """Offer channel configuration options."""
     console.print("\n" + "─" * 50)
     console.print("\n[bold]📱  配置消息渠道 / Configure Messaging Channel[/bold]\n")
@@ -191,6 +220,7 @@ def _setup_channels(cfg: dict):
     console.print(f"\n[yellow]💡  进入对话后，AI 将指导你配置 {channel_name}[/yellow]")
     console.print("[dim]  The AI will guide you through the setup in chat[/dim]")
 
-    # Store pending channel for the chat loop to pick up
-    cfg["_rpaclaw_pending_channel"] = channel_name
-    save_config(cfg)
+    # Store in RPAclaw's own state file (NOT in nanobot config.json)
+    state = load_state()
+    state["pending_channel"] = channel_name
+    save_state(state)

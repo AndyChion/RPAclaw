@@ -67,8 +67,10 @@ def start_chat(config_path: str | None = None, workspace: str | None = None):
     # Inject channel guidance
     _inject_channel_guidance(agent_loop)
 
-    # Check pending channel setup
-    pending_channel = config.raw.get("_rpaclaw_pending_channel")
+    # Check pending channel setup (stored in separate state file)
+    from rpaclaw.setup import load_state, save_state
+    state = load_state()
+    pending_channel = state.get("pending_channel")
     if pending_channel:
         console.print(f"[yellow]📱  AI 将指导你配置 {pending_channel}[/yellow]\n")
 
@@ -133,11 +135,10 @@ def start_chat(config_path: str | None = None, workspace: str | None = None):
                         f"用户消息: {user_input}"
                     )
                 pending_channel = None
-                # Clear pending flag
-                from rpaclaw.setup import load_config as _load, save_config as _save
-                cfg = _load()
-                cfg.pop("_rpaclaw_pending_channel", None)
-                _save(cfg)
+                # Clear pending flag from state file
+                st = load_state()
+                st.pop("pending_channel", None)
+                save_state(st)
 
             # Run conversation turn
             _run_turn(agent_loop, actual_input)
