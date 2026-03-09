@@ -1,14 +1,17 @@
 # ---- Stage 1: Build frontend ----
-FROM node:22-slim AS frontend-builder
+FROM docker.1ms.run/node:22-slim AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm install
+RUN npm config set registry https://registry.npmmirror.com && npm install
 COPY frontend/ ./
 RUN npx vite build
 
 # ---- Stage 2: Runtime ----
-FROM python:3.12-slim
+FROM docker.1ms.run/python:3.12-slim
 LABEL maintainer="RPAclaw" description="RPAclaw — Nanobot + RPA Management Platform"
+
+# China pip mirror
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 # System deps for Playwright + RPA
 RUN apt-get update && apt-get install -y --no-install-recommends \
