@@ -1,10 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller spec for RPAclaw single-file executable."""
 
-import sys
-from pathlib import Path
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
+
+# Collect data files from packages that have JSON/YAML/etc resources
+litellm_datas = collect_data_files('litellm', include_py_files=False)
+nanobot_datas = collect_data_files('nanobot', include_py_files=False)
+tiktoken_datas = collect_data_files('tiktoken_ext', include_py_files=False)
+certifi_datas = collect_data_files('certifi')
+
+# Collect all submodules to avoid missing imports
+litellm_imports = collect_submodules('litellm')
+nanobot_imports = collect_submodules('nanobot')
 
 a = Analysis(
     ['rpaclaw/main.py'],
@@ -12,21 +21,8 @@ a = Analysis(
     binaries=[],
     datas=[
         ('rpaclaw/channels', 'rpaclaw/channels'),
-    ],
+    ] + litellm_datas + nanobot_datas + tiktoken_datas + certifi_datas,
     hiddenimports=[
-        'nanobot',
-        'nanobot.agent',
-        'nanobot.agent.loop',
-        'nanobot.agent.tools',
-        'nanobot.bus',
-        'nanobot.bus.queue',
-        'nanobot.cli',
-        'nanobot.cli.commands',
-        'nanobot.config',
-        'nanobot.config.loader',
-        'nanobot.config.schema',
-        'nanobot.cron',
-        'nanobot.cron.service',
         'rpaclaw',
         'rpaclaw.setup',
         'rpaclaw.chat',
@@ -36,13 +32,23 @@ a = Analysis(
         'rich.markdown',
         'rich.panel',
         'rich.prompt',
+        'rich.table',
+        'rich.spinner',
+        'rich.live',
+        'rich.text',
         'prompt_toolkit',
+        'prompt_toolkit.history',
+        'prompt_toolkit.key_binding',
+        'prompt_toolkit.clipboard',
         'typer',
         'httpx',
+        'httpx._transports',
         'loguru',
+        'pydantic',
         'tiktoken_ext',
         'tiktoken_ext.openai_public',
-    ],
+        'certifi',
+    ] + litellm_imports + nanobot_imports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
