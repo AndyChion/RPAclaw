@@ -24,11 +24,21 @@ if %errorlevel% equ 0 (
     )
 )
 
-REM Get project directory
+REM Get project directory (parent of launchers/)
 set SCRIPT_DIR=%~dp0..
 
 echo [*] Installing dependencies...
-%PY% -m pip install -e "%SCRIPT_DIR%" --quiet 2>nul
+%PY% -m pip install -e "%SCRIPT_DIR%"
+if %errorlevel% neq 0 (
+    echo [!] pip install -e failed, trying pip install from requirements...
+    %PY% -m pip install typer fastapi uvicorn pydantic pydantic-settings loguru httpx
+    if %errorlevel% neq 0 (
+        echo [ERROR] Failed to install dependencies.
+        echo Please run manually: %PY% -m pip install -e "%SCRIPT_DIR%"
+        pause
+        exit /b 1
+    )
+)
 
 echo [*] Checking Playwright browser...
 %PY% -m playwright install chromium 2>nul
@@ -44,6 +54,7 @@ if not exist "%SCRIPT_DIR%\frontend\dist" (
         cd /d "%SCRIPT_DIR%"
     ) else (
         echo [!] npm not found - frontend build skipped
+        echo     Install Node.js from https://nodejs.org/ to build the frontend
     )
 )
 
@@ -60,4 +71,10 @@ echo.
 start http://%HOST%:%PORT%
 
 %PY% -m rpaclaw.main start --host %HOST% --port %PORT%
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] RPAclaw failed to start.
+    echo Please ensure all dependencies are installed:
+    echo   %PY% -m pip install -e "%SCRIPT_DIR%"
+)
 pause
