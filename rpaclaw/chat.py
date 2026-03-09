@@ -1,7 +1,6 @@
 """RPAclaw Rich terminal chat loop — wraps Nanobot AgentLoop."""
 
 import asyncio
-import signal
 import sys
 from pathlib import Path
 
@@ -77,28 +76,42 @@ def start_chat(config_path: str | None = None, workspace: str | None = None):
     console.print("[dim]  输入消息对话 • /exit 退出 • /help 帮助[/dim]")
     console.print("[dim]  Type to chat  • /exit quit • /help for help[/dim]\n")
 
-    # Prompt session with history
+    # Prompt session with history + clipboard support
     from prompt_toolkit import PromptSession
     from prompt_toolkit.history import FileHistory
+    from prompt_toolkit.key_binding import KeyBindings
 
     history_path = Path.home() / ".nanobot" / ".rpaclaw_history"
-    session = PromptSession(history=FileHistory(str(history_path)))
 
-    # Signal handling
-    def _handle_signal(signum, _frame):
-        console.print("\n[dim]👋  再见 / Goodbye![/dim]")
-        sys.exit(0)
+    # Custom key bindings for clipboard paste (Ctrl+V)
+    bindings = KeyBindings()
 
-    signal.signal(signal.SIGINT, _handle_signal)
-    signal.signal(signal.SIGTERM, _handle_signal)
+    @bindings.add("c-v")
+    def _paste(event):
+        """Paste from system clipboard on Ctrl+V."""
+        data = event.app.clipboard.get_data()
+        event.current_buffer.insert_text(data.text)
+
+    session = PromptSession(
+        history=FileHistory(str(history_path)),
+        key_bindings=bindings,
+        enable_system_prompt=True,
+        mouse_support=False,  # Don't capture mouse — let terminal handle copy
+        multiline=False,
+    )
+
+    # NOTE: No signal handler — let prompt_toolkit handle Ctrl+C natively
+    # (Ctrl+C during input → cancels line; during generation → KeyboardInterrupt)
 
     # ─── Main loop ────────────────────────────────────────────
     try:
         while True:
             try:
                 user_input = session.prompt("\n🧑 You > ").strip()
-            except (EOFError, KeyboardInterrupt):
-                break
+            except KeyboardInterrupt:
+                continue  # Ctrl+C cancels current input, don't exit
+            except EOFError:
+                break  # Ctrl+D exits
 
             if not user_input:
                 continue
