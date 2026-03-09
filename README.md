@@ -36,12 +36,29 @@ RPAclaw is an RPA automation management platform built on the [Nanobot](https://
 
 ## 🚀 快速开始 / Quick Start
 
-### 前置要求 / Prerequisites
+### 🐳 Docker 一键启动（推荐）/ Docker One-Click (Recommended)
 
-- Python 3.11+
-- Node.js 18+ (用于前端构建 / for frontend build)
+无需安装 Python、Node.js 或任何依赖，Docker 镜像已包含一切。
+No Python, Node.js, or dependency setup needed — everything is in the Docker image.
 
-### 一键启动 / One-Click Start
+```bash
+git clone https://github.com/AndyChion/RPAclaw.git
+cd RPAclaw
+docker compose up -d
+```
+
+打开 http://localhost:18790 即可使用。
+Open http://localhost:18790 and start using.
+
+**配置 API Key / Set API Key:**
+```bash
+# 方式一：编辑 docker-compose.yml 的 environment 部分
+# 方式二：启动后在 WebUI 的 LLM 配置页面设置
+```
+
+### 手动安装 / Manual Install
+
+前置要求 / Prerequisites: Python 3.11-3.13, Node.js 18+
 
 **macOS / Linux:**
 ```bash
@@ -51,37 +68,22 @@ chmod +x launchers/start_rpaclaw.sh
 ./launchers/start_rpaclaw.sh
 ```
 
-**Windows (CMD):**
+**Windows:**
 ```batch
 git clone https://github.com/AndyChion/RPAclaw.git
 cd RPAclaw
 launchers\start_rpaclaw.bat
 ```
 
-**Windows (PowerShell):**
-```powershell
-git clone https://github.com/AndyChion/RPAclaw.git
-cd RPAclaw
-.\launchers\start_rpaclaw.ps1
-```
+> ⚠️ RPA 依赖 (rpaframework) 暂不支持 Python 3.14，建议使用 Python 3.12 或 Docker。
+> ⚠️ RPA dependencies don't support Python 3.14 yet. Use Python 3.12 or Docker.
 
-启动器会自动安装依赖、构建前端、打开浏览器。
-Launchers auto-install dependencies, build frontend, and open browser.
-
-### 手动安装 / Manual Install
-
+**详细手动安装 / Detailed Manual Install:**
 ```bash
-# 安装 RPAclaw
 pip install -e .
-
-# 安装 RPA 依赖
 pip install robocorp-browser robocorp-excel rpaframework rpaframework-pdf
 python -m playwright install chromium
-
-# 构建前端
 cd frontend && npm install && npx vite build && cd ..
-
-# 启动
 rpaclaw start
 ```
 
@@ -112,6 +114,8 @@ Open http://localhost:18790 in your browser.
 
 ```
 RPAclaw/
+├── Dockerfile                # 🐳 Docker 镜像
+├── docker-compose.yml        # 一键启动配置
 ├── rpaclaw/                  # Python 后端
 │   ├── main.py               # CLI 入口
 │   ├── web/                  # FastAPI 服务

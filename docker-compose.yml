@@ -1,0 +1,21 @@
+services:
+  rpaclaw:
+    build: .
+    container_name: rpaclaw
+    ports:
+      - "18790:18790"
+    volumes:
+      - rpaclaw-config:/root/.nanobot
+      - rpaclaw-workspace:/root/.nanobot/workspace
+    environment:
+      - RPACLAW_HOST=0.0.0.0
+      - RPACLAW_PORT=18790
+      # LLM API Keys — uncomment and fill in:
+      # - OPENAI_API_KEY=sk-xxx
+      # - ANTHROPIC_API_KEY=sk-ant-xxx
+      # - DEEPSEEK_API_KEY=sk-xxx
+    restart: unless-stopped
+
+volumes:
+  rpaclaw-config:
+  rpaclaw-workspace:
