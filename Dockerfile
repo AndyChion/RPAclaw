@@ -1,12 +1,3 @@
-# ---- Stage 1: Build frontend ----
-FROM docker.1ms.run/node:22-slim AS frontend-builder
-WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm config set registry https://registry.npmmirror.com && npm install
-COPY frontend/ ./
-RUN npx vite build
-
-# ---- Stage 2: Runtime ----
 FROM docker.1ms.run/python:3.12-slim
 LABEL maintainer="RPAclaw" description="RPAclaw — Nanobot + RPA Management Platform"
 
@@ -32,16 +23,14 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && python -m playwright install chromium \
     && python -m playwright install-deps chromium
 
-# Copy built frontend
-COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
+# Pre-built frontend (no Node.js needed)
+COPY frontend/dist /app/frontend/dist
 
 # Copy remaining files
 COPY launchers/ launchers/
 COPY README.md LICENSE ./
 
-# Config volume (persist nanobot config)
 VOLUME ["/root/.nanobot"]
-
 EXPOSE 18790
 
 ENV RPACLAW_HOST=0.0.0.0
