@@ -1,38 +1,43 @@
-"""RPAclaw CLI — start the WebUI server."""
+"""RPAclaw — AI-powered RPA automation platform (CLI-first)."""
 
 import sys
 from pathlib import Path
 
 import typer
+from rich.console import Console
 
-app = typer.Typer(help="RPAclaw — Nanobot + RPA management platform")
+app = typer.Typer(
+    help="RPAclaw — AI-powered RPA automation platform",
+    no_args_is_help=True,
+)
+console = Console()
 
 
 @app.command()
 def start(
-    host: str = typer.Option("127.0.0.1", help="Bind host"),
-    port: int = typer.Option(18790, help="Bind port"),
-    config: str = typer.Option(None, help="Path to nanobot config.json"),
-    dev: bool = typer.Option(False, help="Enable frontend dev proxy"),
+    config: str = typer.Option(None, "--config", "-c", help="Path to config file"),
+    workspace: str = typer.Option(None, "--workspace", "-w", help="Workspace dir"),
 ):
-    """Start the RPAclaw WebUI server."""
-    import uvicorn
-    from rpaclaw.web.server import create_app
+    """Launch RPAclaw interactive session."""
+    from rpaclaw.setup import run_setup_if_needed
+    from rpaclaw.chat import start_chat
 
-    config_path = Path(config) if config else None
-    application = create_app(config_path=config_path, dev_mode=dev)
+    run_setup_if_needed(config_path=config)
+    start_chat(config_path=config, workspace=workspace)
 
-    typer.echo(f"🚀 RPAclaw starting at http://{host}:{port}")
-    typer.echo("   Press Ctrl+C to stop")
 
-    uvicorn.run(application, host=host, port=port, log_level="info")
+@app.command()
+def setup():
+    """Re-run the setup wizard."""
+    from rpaclaw.setup import run_setup_wizard
+    run_setup_wizard(force=True)
 
 
 @app.command()
 def version():
-    """Show RPAclaw version."""
+    """Show version."""
     from rpaclaw import __version__
-    typer.echo(f"RPAclaw v{__version__}")
+    console.print(f"RPAclaw v{__version__}")
 
 
 if __name__ == "__main__":

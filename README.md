@@ -1,131 +1,110 @@
 # 🤖 RPAclaw
 
-**Nanobot + RPA 管理平台 / Nanobot + RPA Management Platform**
+**AI 驱动的 RPA 自动化平台 / AI-Powered RPA Automation Platform**
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-RPAclaw 是基于 [Nanobot](https://github.com/HKUDS/nanobot) 框架的 RPA 自动化管理平台，提供 WebUI 界面来管理 AI Agent 的配置、工具、技能和 RPA 工作流。
+RPAclaw 基于 [Nanobot](https://github.com/HKUDS/nanobot)，提供 CLI-first 的 AI Agent 交互体验，内置 RPA 自动化工具，支持 Telegram/微信/钉钉/飞书消息渠道。
 
-RPAclaw is an RPA automation management platform built on the [Nanobot](https://github.com/HKUDS/nanobot) framework, providing a WebUI to manage AI Agent configuration, tools, skills, and RPA workflows.
+Built on [Nanobot](https://github.com/HKUDS/nanobot), RPAclaw provides a CLI-first AI Agent experience with built-in RPA automation tools and multi-channel messaging support.
 
 ---
 
 ## ✨ 功能 / Features
 
-| 功能 Feature | 描述 Description |
-|---|---|
-| 💬 **流式对话 Streaming Chat** | WebSocket 实时对话 / Real-time WebSocket chat |
-| ⚙️ **LLM 配置 LLM Config** | 多 Provider API Key 管理 / Multi-provider API key management |
-| 📡 **渠道管理 Channels** | Telegram, WeChat, DingTalk, Slack, Discord 等 / Multiple channels |
-| 🔧 **工具管理 Tools** | 查看工具、MCP 服务器配置 / View tools, MCP server config |
-| 📚 **Skills 管理** | 浏览和查看 Agent 技能 / Browse and view agent skills |
-| ⏰ **定时任务 Cron** | Heartbeat 心跳配置 / Heartbeat config |
-| 🎭 **性格编辑 Persona** | 编辑 Agent 身份和规则 / Edit agent identity and rules |
-| 🤖 **RPA 工作流 Workflow** | 对话式搭建 + 一键转为 Skill / Chat-driven + save as Skill |
+| 功能 | 描述 |
+|------|------|
+| 🚀 **一键启动** | 双击 exe / app 即可运行，自动引导配置 |
+| 🔑 **智能配置** | 首次启动自动引导选择 LLM + 输入 API Key |
+| 📱 **渠道指导** | AI 指导配置 Telegram / 微信 / 钉钉 / 飞书 |
+| 💬 **Rich 终端** | Markdown 渲染、彩色输出、进度动画 |
+| 🤖 **完整 Agent** | Nanobot 全部机制：Skills、MCP、Heartbeat |
 
-### 🤖 RPA 功能 / RPA Capabilities
+### 🔧 RPA 工具 / RPA Tools
 
-- **浏览器自动化 Browser** — Headless Playwright, 14 个操作（导航、点击、填表、截图...）
-- **PDF 处理 PDF** — 文本提取、表格提取、元数据
-- **Excel 操作 Excel** — 读写、创建、表格导出
-- **邮件自动化 Email** — IMAP/SMTP 收发搜索
-- **桌面控制 Desktop** — macOS/Windows 鼠标、键盘、窗口管理、OCR
+- 🌐 **浏览器** — Playwright headless，14 个操作
+- 📄 **PDF** — 文本提取、表格提取
+- 📊 **Excel** — 读写、创建工作表
+- 📧 **邮件** — IMAP/SMTP 收发搜索
+- 🖥️ **桌面** — macOS/Windows 鼠标键盘控制、OCR
 
 ---
 
 ## 🚀 快速开始 / Quick Start
 
-### 🐳 Docker 一键启动（推荐）/ Docker One-Click (Recommended)
+### 方式一：下载可执行文件（推荐）
 
-无需安装 Python、Node.js 或任何依赖，Docker 镜像已包含一切。
-No Python, Node.js, or dependency setup needed — everything is in the Docker image.
+从 [Releases](https://github.com/AndyChion/RPAclaw/releases) 下载：
+- **Windows**: `rpaclaw-windows.exe` → 双击运行
+- **macOS**: `rpaclaw-macos` → `chmod +x rpaclaw-macos && ./rpaclaw-macos start`
 
-```bash
-git clone https://github.com/AndyChion/RPAclaw.git
-cd RPAclaw
-docker compose up -d
-```
+### 方式二：pip 安装
 
-打开 http://localhost:18790 即可使用。
-Open http://localhost:18790 and start using.
-
-**配置 API Key / Set API Key:**
-```bash
-# 方式一：编辑 docker-compose.yml 的 environment 部分
-# 方式二：启动后在 WebUI 的 LLM 配置页面设置
-```
-
-### 手动安装 / Manual Install
-
-前置要求 / Prerequisites: Python 3.11-3.13, Node.js 18+
-
-**macOS / Linux:**
-```bash
-git clone https://github.com/AndyChion/RPAclaw.git
-cd RPAclaw
-chmod +x launchers/start_rpaclaw.sh
-./launchers/start_rpaclaw.sh
-```
-
-**Windows:**
-```batch
-git clone https://github.com/AndyChion/RPAclaw.git
-cd RPAclaw
-launchers\start_rpaclaw.bat
-```
-
-> ⚠️ RPA 依赖 (rpaframework) 暂不支持 Python 3.14，建议使用 Python 3.12 或 Docker。
-> ⚠️ RPA dependencies don't support Python 3.14 yet. Use Python 3.12 or Docker.
-
-**详细手动安装 / Detailed Manual Install:**
 ```bash
 pip install -e .
-pip install robocorp-browser robocorp-excel rpaframework rpaframework-pdf
-python -m playwright install chromium
-cd frontend && npm install && npx vite build && cd ..
 rpaclaw start
 ```
 
-打开 http://localhost:18790 访问 WebUI。
-Open http://localhost:18790 in your browser.
+### 方式三：Docker
+
+```bash
+docker load < rpaclaw-docker-image.tar.gz
+docker run -d -p 18790:18790 rpaclaw:latest
+```
 
 ---
 
-## 📖 使用指南 / Usage Guide
+## 📖 使用流程 / Usage Flow
 
-### RPA 工作流搭建 / Creating RPA Workflows
+```
+启动 rpaclaw start
+  ↓
+选择 LLM (OpenAI / Anthropic / DeepSeek / OpenRouter / 自定义)
+  ↓
+输入 API Key → 自动验证连接
+  ↓
+选择配置渠道 (Telegram / 微信 / 钉钉 / 飞书 / 跳过)
+  ↓
+进入对话 → 直接用自然语言描述任务
+  ↓
+AI 自动选择 RPA 工具完成自动化
+```
 
-1. 进入 **RPA 工作流** 页面
-2. 用自然语言描述你要自动化的任务
-3. Agent 会使用 RPA 工具逐步完成
-4. 验证通过后，输入名称点击 **保存为 Skill**
-5. 下次提到类似任务时，Agent 会自动使用该 Skill
+### 命令 / Commands
 
-### 配置 LLM / Configure LLM
+```bash
+rpaclaw start          # 启动交互对话
+rpaclaw setup          # 重新运行配置向导
+rpaclaw version        # 显示版本
+```
 
-1. 进入 **LLM 配置** 页面
-2. 填入 Provider 的 API Key
-3. 在 **Agent 设置** 中选择模型和参数
+### 对话中 / In Chat
+
+```
+/exit    退出
+/help    帮助
+```
 
 ---
 
-## 🏗 项目结构 / Project Structure
+## 🏗 项目结构 / Structure
 
 ```
 RPAclaw/
-├── Dockerfile                # 🐳 Docker 镜像
-├── docker-compose.yml        # 一键启动配置
-├── rpaclaw/                  # Python 后端
-│   ├── main.py               # CLI 入口
-│   ├── web/                  # FastAPI 服务
-│   │   ├── server.py         # WebSocket + 静态文件
-│   │   ├── api_config.py     # 配置 CRUD
-│   │   ├── api_tools.py      # 工具/MCP/Skills
-│   │   └── api_rpa.py        # RPA 工作流
-│   └── rpa_skill_creator.py  # 工作流→Skill 转换器
-├── frontend/                 # React 前端 (Vite)
-├── launchers/                # 启动脚本
+├── rpaclaw/
+│   ├── main.py              # CLI 入口
+│   ├── setup.py             # 配置向导
+│   ├── chat.py              # 对话循环
+│   ├── rpa_skill_creator.py # 工作流→Skill
+│   └── channels/            # 渠道配置指南
+│       ├── telegram.md
+│       ├── wechat.md
+│       ├── dingtalk.md
+│       └── feishu.md
+├── rpaclaw.spec             # PyInstaller 打包
+├── .github/workflows/       # CI/CD
+├── Dockerfile               # Docker 备选
 └── pyproject.toml
 ```
 
@@ -133,12 +112,4 @@ RPAclaw/
 
 ## 📝 License
 
-MIT License
-
----
-
-## 🙏 致谢 / Acknowledgments
-
-- [Nanobot](https://github.com/HKUDS/nanobot) — AI Agent 框架
-- [robocorp](https://github.com/robocorp/robocorp) — Browser & Excel 自动化
-- [rpaframework](https://github.com/robocorp/rpaframework) — RPA 工具库
+MIT — [Nanobot](https://github.com/HKUDS/nanobot) · [robocorp](https://github.com/robocorp/robocorp) · [rpaframework](https://github.com/robocorp/rpaframework)

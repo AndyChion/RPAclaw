@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pyinstaller
+      - name: Build Windows executable
+        run: pyinstaller rpaclaw.spec
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpaclaw-windows
+          path: dist/rpaclaw.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pyinstaller
+      - name: Build macOS executable
+        run: pyinstaller rpaclaw.spec
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpaclaw-macos
+          path: dist/rpaclaw
+
+  release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: rpaclaw-windows
+          path: ./windows
+      - uses: actions/download-artifact@v4
+        with:
+          name: rpaclaw-macos
+          path: ./macos
+      - name: Rename artifacts
+        run: |
+          mv ./windows/rpaclaw.exe ./rpaclaw-windows.exe
+          mv ./macos/rpaclaw ./rpaclaw-macos
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            rpaclaw-windows.exe
+            rpaclaw-macos
+          body: |
+            ## 🤖 RPAclaw ${{ github.ref_name }}
+
+            ### 下载 / Download
+            - **Windows**: `rpaclaw-windows.exe` — 双击运行
+            - **macOS**: `rpaclaw-macos` — `chmod +x rpaclaw-macos && ./rpaclaw-macos start`
+
+            ### 使用 / Usage
+            ```bash
+            ./rpaclaw start
+            ```
+            首次启动自动引导配置 LLM 和渠道。
