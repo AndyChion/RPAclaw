@@ -6,11 +6,39 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+console = Console()
+
+
+def _start_impl(
+    config: str = None,
+    workspace: str = None,
+):
+    """Launch RPAclaw interactive session."""
+    try:
+        from rpaclaw.setup import run_setup_if_needed
+        from rpaclaw.chat import start_chat
+
+        run_setup_if_needed(config_path=config)
+        start_chat(config_path=config, workspace=workspace)
+    except KeyboardInterrupt:
+        console.print("\n[dim]👋 Goodbye![/dim]")
+    except Exception as e:
+        console.print(f"\n[red]❌ Error: {e}[/red]")
+        input("\n按 Enter 退出 / Press Enter to exit...")
+        sys.exit(1)
+
+
 app = typer.Typer(
     help="RPAclaw — AI-powered RPA automation platform",
-    no_args_is_help=True,
+    invoke_without_command=True,
 )
-console = Console()
+
+
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context):
+    """Default: run 'start' when no subcommand is given (e.g. double-click exe)."""
+    if ctx.invoked_subcommand is None:
+        _start_impl()
 
 
 @app.command()
@@ -19,18 +47,18 @@ def start(
     workspace: str = typer.Option(None, "--workspace", "-w", help="Workspace dir"),
 ):
     """Launch RPAclaw interactive session."""
-    from rpaclaw.setup import run_setup_if_needed
-    from rpaclaw.chat import start_chat
-
-    run_setup_if_needed(config_path=config)
-    start_chat(config_path=config, workspace=workspace)
+    _start_impl(config=config, workspace=workspace)
 
 
 @app.command()
 def setup():
     """Re-run the setup wizard."""
-    from rpaclaw.setup import run_setup_wizard
-    run_setup_wizard(force=True)
+    try:
+        from rpaclaw.setup import run_setup_wizard
+        run_setup_wizard(force=True)
+    except Exception as e:
+        console.print(f"\n[red]❌ Error: {e}[/red]")
+        input("\n按 Enter 退出 / Press Enter to exit...")
 
 
 @app.command()
