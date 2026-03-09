@@ -11,11 +11,13 @@ from rich.table import Table
 console = Console()
 
 PROVIDERS = {
-    "1": {"name": "OpenAI", "base_url": "https://api.openai.com/v1", "model": "gpt-4o"},
-    "2": {"name": "Anthropic", "base_url": "https://api.anthropic.com", "model": "claude-sonnet-4-20250514"},
+    "1": {"name": "Minimax", "base_url": "https://api.minimax.chat/v1", "model": "MiniMax-Text-01"},
+    "2": {"name": "Kimi (Moonshot)", "base_url": "https://api.moonshot.cn/v1", "model": "moonshot-v1-128k"},
     "3": {"name": "DeepSeek", "base_url": "https://api.deepseek.com", "model": "deepseek-chat"},
-    "4": {"name": "OpenRouter", "base_url": "https://openrouter.ai/api/v1", "model": "openai/gpt-4o"},
-    "5": {"name": "自定义 / Custom", "base_url": "", "model": ""},
+    "4": {"name": "OpenAI", "base_url": "https://api.openai.com/v1", "model": "gpt-4o"},
+    "5": {"name": "Anthropic", "base_url": "https://api.anthropic.com", "model": "claude-sonnet-4-20250514"},
+    "6": {"name": "OpenRouter", "base_url": "https://openrouter.ai/api/v1", "model": "openai/gpt-4o"},
+    "7": {"name": "自定义 / Custom", "base_url": "", "model": ""},
 }
 
 LOGO = r"""
@@ -90,7 +92,7 @@ def run_setup_wizard(force: bool = False):
     )
     provider = dict(PROVIDERS[choice])  # copy
 
-    if choice == "5":
+    if choice == "7":
         provider["name"] = Prompt.ask("  供应商名称 / Provider name")
         provider["base_url"] = Prompt.ask("  API Base URL")
         provider["model"] = Prompt.ask("  模型名称 / Model name")
